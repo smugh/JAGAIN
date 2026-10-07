@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/services/permission_service.dart';
 import 'features/activity/activity_page.dart';
 import 'features/assets/assets_page.dart';
 import 'features/assets/presentation/add_asset_sheet.dart';
@@ -18,6 +19,14 @@ class JagainApp extends ConsumerStatefulWidget {
 
 class _JagainAppState extends ConsumerState<JagainApp> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      PermissionService.requestInitialPermissions();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

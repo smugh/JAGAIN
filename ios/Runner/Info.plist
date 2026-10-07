@@ -66,5 +66,9 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>JAGAIN memerlukan izin akses kamera untuk mengambil foto aset dan bukti perawatan.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>JAGAIN memerlukan izin akses galeri foto untuk memilih gambar aset Anda.</string>
 </dict>
 </plist>
