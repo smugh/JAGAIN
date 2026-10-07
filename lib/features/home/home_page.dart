@@ -23,22 +23,15 @@ class HomePage extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 36),
       children: [
-        // Top Bar: Shield Logo, App Title, Dark/Light Mode Toggle, and Notification Icon
+        // Top Bar: Horizontal Logo only, Dark/Light Mode Toggle, and Notification Icon
         Row(
           children: [
             Image.asset(
-              'assets/icons/primary_logo.png',
-              width: 38,
-              height: 38,
+              isDark
+                  ? 'assets/icons/horizontal_logo_dark.png'
+                  : 'assets/icons/horizontal_logo.png',
+              height: 32,
               fit: BoxFit.contain,
-            ),
-            const SizedBox(width: 10),
-            Text(
-              strings.appName,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
             ),
             const Spacer(),
 

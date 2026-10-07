@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
+import '../../activity/data/activity_provider.dart';
+import '../../reminders/data/reminders_provider.dart';
+import '../../reminders/presentation/add_reminder_sheet.dart';
+import '../../reminders/presentation/execute_reminder_dialog.dart';
 import '../../shared/widgets/asset_image_view.dart';
 import '../data/assets_provider.dart';
 import 'add_asset_sheet.dart';
@@ -21,6 +26,14 @@ class AssetDetailPage extends ConsumerWidget {
       (a) => a.id == asset.id,
       orElse: () => asset,
     );
+
+    final allReminders = ref.watch(remindersProvider);
+    final assetReminders = allReminders.where((r) => r.assetId == currentAsset.id).toList();
+
+    final allLogs = ref.watch(activityLogsProvider);
+    final assetLogs = allLogs.where((l) => l.assetId == currentAsset.id).toList();
+
+    final dateFormat = DateFormat('EEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     final condColor = _getConditionColor(currentAsset.condition);
     final condText = _getConditionText(currentAsset.condition, strings);
@@ -429,7 +442,7 @@ class AssetDetailPage extends ConsumerWidget {
             const SizedBox(height: 22),
           ],
 
-          // 6. Upcoming Reminders (PRD FR-05 & FR-06)
+          // 6. Upcoming Reminders (Melekat pada Aset & Sub-Item Checklist)
           Row(
             children: [
               Expanded(
@@ -443,70 +456,287 @@ class AssetDetailPage extends ConsumerWidget {
               ),
               const SizedBox(width: 8),
               TextButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        strings.isId
-                            ? 'Fitur tambah pengingat untuk ${currentAsset.name}'
-                            : 'Add reminder for ${currentAsset.name}',
-                      ),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
+                onPressed: () => AddReminderSheet.show(context, preselectedAssetId: currentAsset.id),
                 icon: const Icon(Icons.add_alert_rounded, size: 16),
                 label: Text(strings.isId ? 'Tambah' : 'Add'),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.2 : 0.12),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  child: const Icon(
-                    Icons.notifications_active_rounded,
-                    color: Color(0xFF10B981),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        strings.isId ? 'Jadwal Servis Berkala' : 'Periodic Service Schedule',
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          if (assetReminders.isEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? JagainColors.darkSurface : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
+                      child: Icon(
+                        Icons.notifications_none_rounded,
+                        color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
                         strings.isId
-                            ? 'Pengingat berkala otomatis terhubung ke aset ini.'
-                            : 'Automatic reminders linked to this asset.',
+                            ? 'Belum ada pengingat untuk aset ini. Ketuk "+ Tambah" untuk mengatur jadwal.'
+                            : 'No reminders for this asset yet. Tap "+ Add" to schedule one.',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 12.5,
+                          fontStyle: FontStyle.italic,
                           color: isDark ? JagainColors.darkMuted : JagainColors.muted,
                         ),
                       ),
-                    ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            ...assetReminders.map((reminder) {
+              final isCompleted = reminder.isCompleted;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Card(
+                  child: InkWell(
+                    onTap: () {
+                      if (!isCompleted) {
+                        ExecuteReminderDialog.show(context, reminder);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                              color: isCompleted
+                                  ? const Color(0xFF10B981)
+                                  : (isDark ? JagainColors.primaryLight : JagainColors.primary),
+                              size: 22,
+                            ),
+                            onPressed: () {
+                              if (!isCompleted) {
+                                ExecuteReminderDialog.show(context, reminder);
+                              }
+                            },
+                            tooltip: isCompleted
+                                ? (strings.isId ? 'Selesai' : 'Completed')
+                                : strings.executeReminderAction,
+                          ),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: reminder.isChecklistItem
+                                            ? Colors.purple.withValues(alpha: 0.12)
+                                            : Colors.blue.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        reminder.isChecklistItem
+                                            ? (strings.isId ? '📋 Sub-Item Checklist' : '📋 Checklist')
+                                            : (strings.isId ? '📌 Aset Utama' : '📌 Main Asset'),
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: reminder.isChecklistItem ? Colors.purple : Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      '${dateFormat.format(reminder.dueDate)} WIB',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  reminder.title,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13.5,
+                                    decoration: isCompleted ? TextDecoration.lineThrough : null,
+                                    color: isCompleted
+                                        ? (isDark ? JagainColors.darkMuted : JagainColors.muted)
+                                        : (isDark ? JagainColors.darkText : JagainColors.ink),
+                                  ),
+                                ),
+                                if (reminder.notes != null && reminder.notes!.isNotEmpty) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    reminder.notes!,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontStyle: FontStyle.italic,
+                                      color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-              ],
-            ),
+              );
+            }),
+          ],
+          const SizedBox(height: 22),
+
+          // 7. Riwayat & Log Aktivitas Aset (History & Action Logs)
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  strings.assetHistoryTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 8),
+              TextButton.icon(
+                onPressed: () => _showAddManualLogDialog(context, ref, currentAsset.id, strings),
+                icon: const Icon(Icons.post_add_rounded, size: 16),
+                label: Text(strings.isId ? 'Catat' : 'Log'),
+              ),
+            ],
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 10),
+          if (assetLogs.isEmpty) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: isDark ? JagainColors.darkSurface : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.history_rounded,
+                        color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        strings.isId
+                            ? 'Belum ada riwayat aktivitas. Log otomatis tersimpan saat Anda menyelesaikan pengingat.'
+                            : 'No history logs yet. Logs will be saved automatically when you complete reminders.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            ...assetLogs.map((log) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.check_rounded, size: 12, color: Color(0xFF10B981)),
+                            ),
+                            const SizedBox(width: 6),
+                            if (log.targetName != null) ...[
+                              Text(
+                                log.targetName!,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
+                                ),
+                              ),
+                            ],
+                            const Spacer(),
+                            Text(
+                              dateFormat.format(log.timestamp),
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          log.title,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                        ),
+                        if (log.notes != null && log.notes!.isNotEmpty) ...[
+                          const SizedBox(height: 6),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isDark ? JagainColors.darkBackground : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              log.notes!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                height: 1.35,
+                                color: isDark ? JagainColors.darkText : JagainColors.ink,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ],
+        ],
+      ),
+    );
   }
 
   Widget _buildFallbackImage(bool isDark) {
@@ -655,6 +885,80 @@ class AssetDetailPage extends ConsumerWidget {
               );
             },
             child: Text(strings.isId ? 'Hapus' : 'Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddManualLogDialog(
+    BuildContext context,
+    WidgetRef ref,
+    String assetId,
+    AppStrings strings,
+  ) {
+    final titleController = TextEditingController();
+    final notesController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(strings.addManualLog),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: strings.isId ? 'Judul Aksi / Servis' : 'Action / Service Title',
+                hintText: strings.isId ? 'misal: Ganti aki, Servis berkala' : 'e.g. Battery replacement',
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: notesController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: strings.actionLogNotesLabel,
+                hintText: strings.actionLogNotesHint,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(strings.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (titleController.text.trim().isNotEmpty) {
+                final log = AssetActivityLog(
+                  id: 'log_${DateTime.now().millisecondsSinceEpoch}',
+                  assetId: assetId,
+                  title: titleController.text.trim(),
+                  targetName: strings.isId ? 'Catatan Manual' : 'Manual Log',
+                  type: ActivityType.manualLog,
+                  timestamp: DateTime.now(),
+                  notes: notesController.text.trim().isEmpty ? null : notesController.text.trim(),
+                );
+                ref.read(activityLogsProvider.notifier).addLog(log);
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      strings.isId
+                          ? 'Catatan riwayat berhasil disimpan!'
+                          : 'History log saved successfully!',
+                    ),
+                    backgroundColor: const Color(0xFF10B981),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            child: Text(strings.isId ? 'Simpan' : 'Save'),
           ),
         ],
       ),

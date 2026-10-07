@@ -7,17 +7,38 @@ import 'features/assets/assets_page.dart';
 import 'features/assets/presentation/add_asset_sheet.dart';
 import 'features/home/home_page.dart';
 import 'features/settings/settings_page.dart';
+import 'features/splash/splash_page.dart';
 import 'i18n/app_locale.dart';
 import 'theme/app_theme.dart';
 
-class JagainApp extends ConsumerStatefulWidget {
-  const JagainApp({super.key});
+class JagainApp extends ConsumerWidget {
+  const JagainApp({super.key, this.showSplash = true});
+
+  final bool showSplash;
 
   @override
-  ConsumerState<JagainApp> createState() => _JagainAppState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+
+    return MaterialApp(
+      title: 'JAGAIN',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light,
+      darkTheme: AppTheme.dark,
+      themeMode: themeMode,
+      home: showSplash ? const SplashPage() : const MainShell(),
+    );
+  }
 }
 
-class _JagainAppState extends ConsumerState<JagainApp> {
+class MainShell extends ConsumerStatefulWidget {
+  const MainShell({super.key});
+
+  @override
+  ConsumerState<MainShell> createState() => _MainShellState();
+}
+
+class _MainShellState extends ConsumerState<MainShell> {
   int _selectedIndex = 0;
 
   @override
@@ -43,22 +64,21 @@ class _JagainAppState extends ConsumerState<JagainApp> {
       ),
     ];
 
-    return MaterialApp(
-      title: 'JAGAIN',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: themeMode,
-      home: Builder(
-        builder: (innerContext) => Scaffold(
-          body: SafeArea(child: pages[_selectedIndex]),
-          bottomNavigationBar: _buildCustomBottomBar(innerContext, strings, themeMode == ThemeMode.dark),
-        ),
+    return Scaffold(
+      body: SafeArea(child: pages[_selectedIndex]),
+      bottomNavigationBar: _buildCustomBottomBar(
+        context,
+        strings,
+        themeMode == ThemeMode.dark,
       ),
     );
   }
 
-  Widget _buildCustomBottomBar(BuildContext context, AppStrings strings, bool isDark) {
+  Widget _buildCustomBottomBar(
+    BuildContext context,
+    AppStrings strings,
+    bool isDark,
+  ) {
     final navBg = isDark ? JagainColors.darkSurface : Colors.white;
     final borderColor = isDark ? JagainColors.darkBorder : JagainColors.border;
 
@@ -148,7 +168,8 @@ class _JagainAppState extends ConsumerState<JagainApp> {
     required bool isDark,
   }) {
     final isSelected = _selectedIndex == index;
-    final activeColor = isDark ? JagainColors.primaryLight : JagainColors.primaryDark;
+    final activeColor =
+        isDark ? JagainColors.primaryLight : JagainColors.primaryDark;
     final inactiveColor = isDark ? JagainColors.darkMuted : JagainColors.muted;
 
     return InkWell(

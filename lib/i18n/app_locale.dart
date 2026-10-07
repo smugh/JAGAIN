@@ -187,6 +187,47 @@ class AppStrings {
   String get quickSuggestions => isId ? 'Saran Cepat' : 'Quick Suggestions';
   String get checklistDone => isId ? 'selesai' : 'completed';
 
+  // Reminders & Permissions (Feature Update)
+  String get reminderSectionTitle => isId ? 'Set Pengingat (Opsional)' : 'Set Reminder (Optional)';
+  String get reminderSectionSubtitle =>
+      isId ? 'Ingatkan jadwal servis atau pembayaran dengan waktu & tanggal akurat.' : 'Set precise date & time care reminders.';
+  String get enableReminder => isId ? 'Aktifkan Pengingat' : 'Enable Reminder';
+  String get reminderTargetLabel => isId ? 'Opsi Melekat Pengingat' : 'Reminder Target Option';
+  String get reminderTargetAsset => isId ? '📌 Melekat pada Aset' : '📌 Attached to Asset';
+  String get reminderTargetChecklist => isId ? '📋 Melekat pada Sub-Item' : '📋 Attached to Sub-Item';
+  String get chooseChecklistItemForReminder =>
+      isId ? 'Pilih Sub-Item Checklist:' : 'Select Checklist Sub-Item:';
+  String get noChecklistForReminderWarning =>
+      isId ? 'Belum ada item checklist. Tambahkan item di section Checklist di bawah, atau pilih "Melekat pada Aset".' : 'No checklist items yet. Add one in the Checklist section below or select "Attached to Asset".';
+  String get reminderTitleLabel => isId ? 'Judul Pengingat' : 'Reminder Title';
+  String get reminderTitleHint => isId ? 'misal: Servis berkala, Bayar STNK' : 'e.g. Regular service, Tax renewal';
+  String get reminderDateTimeLabel => isId ? 'Waktu & Tanggal Pengingat' : 'Reminder Date & Time';
+  String get reminderPickDate => isId ? 'Pilih Tanggal' : 'Pick Date';
+  String get reminderPickTime => isId ? 'Pilih Waktu' : 'Pick Time';
+  String get reminderRecurrenceLabel => isId ? 'Pengulangan' : 'Recurrence';
+  String get recurrenceOnce => isId ? 'Sekali Saja' : 'Once';
+  String get recurrenceMonthly => isId ? 'Bulanan' : 'Monthly';
+  String get recurrenceEvery3Months => isId ? 'Setiap 3 Bulan' : 'Every 3 Months';
+  String get recurrenceEvery6Months => isId ? 'Setiap 6 Bulan' : 'Every 6 Months';
+  String get recurrenceYearly => isId ? 'Tahunan' : 'Yearly';
+  String get executeReminderTitle => isId ? 'Selesaikan Pengingat' : 'Complete Reminder';
+  String get executeReminderAction => isId ? 'Selesaikan' : 'Complete';
+  String get saveToHistoryOption => isId ? 'Simpan aksi ini ke riwayat / log aset' : 'Save this action to asset history log';
+  String get actionLogNotesLabel => isId ? 'Catatan Pelaksanaan (Opsional)' : 'Action Execution Notes (Optional)';
+  String get actionLogNotesHint =>
+      isId ? 'misal: Ganti oli 4L di bengkel resmi, biaya Rp 450.000, kondisi mesin halus.' : 'e.g. Changed 4L synthetic oil at official dealer, Rp 450,000, engine runs smooth.';
+  String get confirmAndSaveLog => isId ? 'Selesaikan & Simpan Log' : 'Complete & Save to Log';
+  String get reminderExecutedSuccess =>
+      isId ? 'Pengingat berhasil diselesaikan dan dicatat ke riwayat aset!' : 'Reminder completed and recorded in asset history!';
+  String get addReminderTitle => isId ? 'Tambah Pengingat Baru' : 'Add New Reminder';
+  String get assetHistoryTitle => isId ? 'Riwayat & Log Aset' : 'Asset History & Logs';
+  String get assetHistorySubtitle =>
+      isId ? 'Catatan tindakan, servis, dan pengingat yang telah diselesaikan.' : 'Log of completed actions, maintenance, and reminders.';
+  String get addManualLog => isId ? 'Tambah Catatan Log' : 'Add History Log';
+  String get noHistoryYet => isId ? 'Belum ada riwayat tercatat untuk aset ini.' : 'No history logs recorded for this asset yet.';
+  String get permissionRequestedMsg =>
+      isId ? 'Akses notifikasi & pengingat telah diminta untuk perangkat Anda.' : 'Notification & alarm permissions requested for your device.';
+
   // Categories
   String categoryName(String id) {
     if (isId) {

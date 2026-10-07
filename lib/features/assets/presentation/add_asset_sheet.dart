@@ -4,12 +4,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+import '../../../core/services/permission_service.dart';
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../categories/data/categories_provider.dart';
+import '../../reminders/data/reminders_provider.dart';
 import '../../shared/widgets/asset_image_view.dart';
 import '../data/assets_provider.dart';
 
@@ -48,6 +51,15 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
   bool _showAdvancedInfo = false;
   final List<ChecklistItem> _checklistItems = [];
 
+  // Reminder fields (Asset-level vs Checklist Sub-item)
+  bool _enableReminder = false;
+  ReminderTargetType _reminderTargetType = ReminderTargetType.asset;
+  String? _selectedReminderChecklistId;
+  final _reminderTitleController = TextEditingController();
+  late DateTime _reminderDateTime;
+  ReminderRecurrence _reminderRecurrence = ReminderRecurrence.once;
+  final _reminderNotesController = TextEditingController();
+
   final List<Map<String, String>> _photoPresets = const [
     {'path': 'assets/images/car.png', 'label': 'Mobil'},
     {'path': 'assets/images/motor.png', 'label': 'Motor'},
@@ -60,6 +72,9 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
   @override
   void initState() {
     super.initState();
+    final now = DateTime.now();
+    _reminderDateTime = DateTime(now.year, now.month, now.day + 7, 9, 0);
+
     final editAsset = widget.assetToEdit;
     if (editAsset != null) {
       _nameController.text = editAsset.name;
@@ -137,7 +152,57 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
     _locationController.dispose();
     _notesController.dispose();
     _customChecklistController.dispose();
+    _reminderTitleController.dispose();
+    _reminderNotesController.dispose();
     super.dispose();
+  }
+
+  void _updateReminderDefaultTitle() {
+    if (_reminderTargetType == ReminderTargetType.checklistItem && _selectedReminderChecklistId != null) {
+      final item = _checklistItems.where((c) => c.id == _selectedReminderChecklistId).firstOrNull;
+      if (item != null) {
+        _reminderTitleController.text = item.title;
+        return;
+      }
+    }
+    final assetName = _nameController.text.trim();
+    _reminderTitleController.text = assetName.isEmpty ? 'Servis & Perawatan Aset' : 'Servis & Perawatan $assetName';
+  }
+
+  Future<void> _pickReminderDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _reminderDateTime,
+      firstDate: DateTime.now().subtract(const Duration(days: 1)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+    );
+    if (picked == null) return;
+    setState(() {
+      _reminderDateTime = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _reminderDateTime.hour,
+        _reminderDateTime.minute,
+      );
+    });
+  }
+
+  Future<void> _pickReminderTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_reminderDateTime),
+    );
+    if (picked == null) return;
+    setState(() {
+      _reminderDateTime = DateTime(
+        _reminderDateTime.year,
+        _reminderDateTime.month,
+        _reminderDateTime.day,
+        picked.hour,
+        picked.minute,
+      );
+    });
   }
 
   List<String> _getSuggestionsForCategory(String category) {
@@ -268,6 +333,29 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
       );
 
       ref.read(assetsProvider.notifier).updateAsset(updatedAsset);
+
+      if (_enableReminder) {
+        final reminderTitle = _reminderTitleController.text.trim().isNotEmpty
+            ? _reminderTitleController.text.trim()
+            : (_reminderTargetType == ReminderTargetType.asset ? 'Servis ${updatedAsset.name}' : 'Checklist Reminder');
+
+        final reminder = AssetReminder(
+          id: 'rem_${DateTime.now().millisecondsSinceEpoch}',
+          assetId: updatedAsset.id,
+          checklistItemId: _reminderTargetType == ReminderTargetType.checklistItem ? _selectedReminderChecklistId : null,
+          targetType: _reminderTargetType,
+          title: reminderTitle,
+          dueDate: _reminderDateTime,
+          recurrence: _reminderRecurrence,
+          status: ReminderStatus.upcoming,
+          notificationEnabled: true,
+          createdAt: DateTime.now(),
+          notes: _reminderNotesController.text.trim().isEmpty ? null : _reminderNotesController.text.trim(),
+        );
+
+        ref.read(remindersProvider.notifier).addReminder(reminder);
+      }
+
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -296,6 +384,29 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
       );
 
       ref.read(assetsProvider.notifier).addAsset(newAsset);
+
+      if (_enableReminder) {
+        final reminderTitle = _reminderTitleController.text.trim().isNotEmpty
+            ? _reminderTitleController.text.trim()
+            : (_reminderTargetType == ReminderTargetType.asset ? 'Servis ${newAsset.name}' : 'Checklist Reminder');
+
+        final reminder = AssetReminder(
+          id: 'rem_${DateTime.now().millisecondsSinceEpoch}',
+          assetId: newAsset.id,
+          checklistItemId: _reminderTargetType == ReminderTargetType.checklistItem ? _selectedReminderChecklistId : null,
+          targetType: _reminderTargetType,
+          title: reminderTitle,
+          dueDate: _reminderDateTime,
+          recurrence: _reminderRecurrence,
+          status: ReminderStatus.upcoming,
+          notificationEnabled: true,
+          createdAt: DateTime.now(),
+          notes: _reminderNotesController.text.trim().isEmpty ? null : _reminderNotesController.text.trim(),
+        );
+
+        ref.read(remindersProvider.notifier).addReminder(reminder);
+      }
+
       Navigator.of(context).pop();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1099,6 +1210,309 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                             ),
                           );
                         }),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // 7. Set Pengingat Perawatan (Opsional) - Melekat pada Aset vs Sub-Item + Waktu & Tanggal + Permission
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _enableReminder ? JagainColors.primary.withValues(alpha: 0.6) : borderColor,
+                      width: _enableReminder ? 1.5 : 1.0,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(7),
+                            decoration: BoxDecoration(
+                              color: _enableReminder
+                                  ? JagainColors.primary.withValues(alpha: 0.2)
+                                  : (isDark ? Colors.white10 : Colors.black12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.alarm_on_rounded,
+                              size: 19,
+                              color: _enableReminder
+                                  ? (isDark ? JagainColors.primaryLight : JagainColors.primaryDark)
+                                  : (isDark ? JagainColors.darkMuted : JagainColors.muted),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  strings.reminderSectionTitle,
+                                  style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
+                                ),
+                                Text(
+                                  strings.reminderSectionSubtitle,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: _enableReminder,
+                            activeColor: JagainColors.primary,
+                            onChanged: (val) async {
+                              setState(() => _enableReminder = val);
+                              if (val) {
+                                await PermissionService.requestInitialPermissions();
+                                if (_reminderTitleController.text.trim().isEmpty) {
+                                  _updateReminderDefaultTitle();
+                                }
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                      if (_enableReminder) ...[
+                        const SizedBox(height: 14),
+                        const Divider(height: 1),
+                        const SizedBox(height: 14),
+
+                        // Opsi Target: 📌 Melekat pada Aset VS 📋 Melekat pada Sub-Item Checklist
+                        Text(
+                          strings.reminderTargetLabel,
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _reminderTargetType = ReminderTargetType.asset;
+                                    _selectedReminderChecklistId = null;
+                                  });
+                                  _updateReminderDefaultTitle();
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: _reminderTargetType == ReminderTargetType.asset
+                                        ? JagainColors.primary.withValues(alpha: isDark ? 0.25 : 0.15)
+                                        : (isDark ? JagainColors.darkBackground : Colors.white),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: _reminderTargetType == ReminderTargetType.asset ? JagainColors.primary : borderColor,
+                                      width: _reminderTargetType == ReminderTargetType.asset ? 1.8 : 1.0,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    strings.reminderTargetAsset,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: _reminderTargetType == ReminderTargetType.asset ? FontWeight.w700 : FontWeight.w500,
+                                      color: _reminderTargetType == ReminderTargetType.asset
+                                          ? (isDark ? JagainColors.primaryLight : JagainColors.primaryDark)
+                                          : (isDark ? JagainColors.darkMuted : JagainColors.muted),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _reminderTargetType = ReminderTargetType.checklistItem;
+                                    if (_checklistItems.isNotEmpty && _selectedReminderChecklistId == null) {
+                                      _selectedReminderChecklistId = _checklistItems.first.id;
+                                    }
+                                  });
+                                  _updateReminderDefaultTitle();
+                                },
+                                borderRadius: BorderRadius.circular(10),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    color: _reminderTargetType == ReminderTargetType.checklistItem
+                                        ? JagainColors.primary.withValues(alpha: isDark ? 0.25 : 0.15)
+                                        : (isDark ? JagainColors.darkBackground : Colors.white),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: _reminderTargetType == ReminderTargetType.checklistItem ? JagainColors.primary : borderColor,
+                                      width: _reminderTargetType == ReminderTargetType.checklistItem ? 1.8 : 1.0,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    strings.reminderTargetChecklist,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      fontWeight: _reminderTargetType == ReminderTargetType.checklistItem ? FontWeight.w700 : FontWeight.w500,
+                                      color: _reminderTargetType == ReminderTargetType.checklistItem
+                                          ? (isDark ? JagainColors.primaryLight : JagainColors.primaryDark)
+                                          : (isDark ? JagainColors.darkMuted : JagainColors.muted),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Sub-Item Checklist Selector
+                        if (_reminderTargetType == ReminderTargetType.checklistItem) ...[
+                          if (_checklistItems.isNotEmpty) ...[
+                            Text(
+                              strings.chooseChecklistItemForReminder,
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                              decoration: BoxDecoration(
+                                color: isDark ? JagainColors.darkBackground : Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: borderColor),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<String>(
+                                  value: _selectedReminderChecklistId ?? _checklistItems.first.id,
+                                  isExpanded: true,
+                                  items: _checklistItems.map((item) {
+                                    return DropdownMenuItem(
+                                      value: item.id,
+                                      child: Text(item.title, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w500)),
+                                    );
+                                  }).toList(),
+                                  onChanged: (val) {
+                                    setState(() => _selectedReminderChecklistId = val);
+                                    _updateReminderDefaultTitle();
+                                  },
+                                ),
+                              ),
+                            ),
+                          ] else ...[
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                              ),
+                              child: Text(
+                                strings.noChecklistForReminderWarning,
+                                style: const TextStyle(fontSize: 11, color: Colors.amber),
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 12),
+                        ],
+
+                        // Judul Pengingat
+                        Text(
+                          strings.reminderTitleLabel,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _reminderTitleController,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            hintText: strings.reminderTitleHint,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Tanggal & Waktu Pickers
+                        Text(
+                          strings.reminderDateTimeLabel,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _pickReminderDate,
+                                icon: const Icon(Icons.calendar_month_rounded, size: 15),
+                                label: Text(
+                                  DateFormat('EEE, d MMM yyyy', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime),
+                                  style: const TextStyle(fontSize: 11.5),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                  side: BorderSide(color: borderColor),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _pickReminderTime,
+                                icon: const Icon(Icons.access_time_filled_rounded, size: 15),
+                                label: Text(
+                                  '${DateFormat('HH:mm', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime)} WIB',
+                                  style: const TextStyle(fontSize: 11.5),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                  side: BorderSide(color: borderColor),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Frekuensi Pengulangan
+                        Text(
+                          strings.reminderRecurrenceLabel,
+                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? JagainColors.darkBackground : Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: borderColor),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<ReminderRecurrence>(
+                              value: _reminderRecurrence,
+                              isExpanded: true,
+                              items: [
+                                DropdownMenuItem(value: ReminderRecurrence.once, child: Text(strings.recurrenceOnce, style: const TextStyle(fontSize: 12.5))),
+                                DropdownMenuItem(value: ReminderRecurrence.monthly, child: Text(strings.recurrenceMonthly, style: const TextStyle(fontSize: 12.5))),
+                                DropdownMenuItem(value: ReminderRecurrence.everyThreeMonths, child: Text(strings.recurrenceEvery3Months, style: const TextStyle(fontSize: 12.5))),
+                                DropdownMenuItem(value: ReminderRecurrence.everySixMonths, child: Text(strings.recurrenceEvery6Months, style: const TextStyle(fontSize: 12.5))),
+                                DropdownMenuItem(value: ReminderRecurrence.yearly, child: Text(strings.recurrenceYearly, style: const TextStyle(fontSize: 12.5))),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _reminderRecurrence = val);
+                              },
+                            ),
+                          ),
+                        ),
                       ],
                     ],
                   ),
