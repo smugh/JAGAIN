@@ -62,8 +62,8 @@ class _ExecuteReminderDialogState extends ConsumerState<ExecuteReminderDialog> {
       final assetName = parentAsset?.name ?? 'Aset';
 
       String targetLabel = reminder.isChecklistItem
-          ? 'Sub-Item Checklist: ${reminder.title}'
-          : 'Aset Utama: $assetName';
+          ? (strings.isId ? 'Sub-Item Checklist' : 'Checklist Sub-Item')
+          : (strings.isId ? 'Aset Utama' : 'Main Asset');
 
       final newLog = AssetActivityLog(
         id: 'log_${DateTime.now().millisecondsSinceEpoch}',

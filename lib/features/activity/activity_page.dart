@@ -19,7 +19,7 @@ class ActivityPage extends ConsumerWidget {
     final allAssets = ref.watch(assetsProvider);
 
     final dateFormat =
-        safeDateFormat('EEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
+        safeDateFormat('d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     return Scaffold(
       backgroundColor: isDark ? JagainColors.darkBackground : JagainColors.canvas,
@@ -137,34 +137,52 @@ class ActivityPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 6),
                                   if (log.targetName != null) ...[
-                                    Expanded(
-                                      child: Text(
-                                        log.targetName!,
-                                        style: TextStyle(
-                                          fontSize: 10.5,
-                                          color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                    Flexible(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                                        decoration: BoxDecoration(
+                                          color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
-                                        overflow: TextOverflow.ellipsis,
+                                        child: Text(
+                                          log.targetName!,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                          ),
+                                        ),
                                       ),
                                     ),
-                                  ] else
-                                    const Spacer(),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.calendar_today_rounded,
-                                        size: 11,
-                                        color: isDark ? JagainColors.darkMuted : JagainColors.muted,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        dateFormat.format(log.timestamp),
-                                        style: TextStyle(
-                                          fontSize: 10.5,
+                                  ],
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                    decoration: BoxDecoration(
+                                      color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.access_time_rounded,
+                                          size: 11,
                                           color: isDark ? JagainColors.darkMuted : JagainColors.muted,
                                         ),
-                                      ),
-                                    ],
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${dateFormat.format(log.timestamp)} WIB',
+                                          style: TextStyle(
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),

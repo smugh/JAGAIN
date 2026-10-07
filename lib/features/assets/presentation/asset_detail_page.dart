@@ -35,7 +35,7 @@ class AssetDetailPage extends ConsumerWidget {
     final assetLogs = allLogs.where((l) => l.assetId == currentAsset.id).toList();
 
     final dateFormat =
-        safeDateFormat('EEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
+        safeDateFormat('d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     final condColor = _getConditionColor(currentAsset.condition);
     final condText = _getConditionText(currentAsset.condition, strings);
@@ -676,31 +676,72 @@ class AssetDetailPage extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(Icons.check_rounded, size: 12, color: Color(0xFF10B981)),
-                            ),
-                            const SizedBox(width: 6),
                             if (log.targetName != null) ...[
-                              Text(
-                                log.targetName!,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                                    width: 0.8,
+                                  ),
                                 ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 12,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      log.targetName!,
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.check_rounded, size: 12, color: Color(0xFF10B981)),
                               ),
                             ],
                             const Spacer(),
-                            Text(
-                              dateFormat.format(log.timestamp),
-                              style: TextStyle(
-                                fontSize: 10.5,
-                                color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.04),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.access_time_rounded,
+                                    size: 11,
+                                    color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${dateFormat.format(log.timestamp)} WIB',
+                                    style: TextStyle(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
