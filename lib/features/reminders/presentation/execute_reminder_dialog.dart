@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../activity/data/activity_provider.dart';
@@ -98,7 +99,8 @@ class _ExecuteReminderDialogState extends ConsumerState<ExecuteReminderDialog> {
     final parentAsset = assets.where((a) => a.id == widget.reminder.assetId).firstOrNull;
     final assetName = parentAsset?.name ?? (strings.isId ? 'Aset' : 'Asset');
 
-    final dateFormat = DateFormat('EEEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
+    final dateFormat =
+        safeDateFormat('EEEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     return AlertDialog(
       backgroundColor: isDark ? JagainColors.darkSurface : Colors.white,

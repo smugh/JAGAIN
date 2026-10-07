@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
 import '../../../core/services/permission_service.dart';
+import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../categories/data/categories_provider.dart';
@@ -1453,7 +1454,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                 onPressed: _pickReminderDate,
                                 icon: const Icon(Icons.calendar_month_rounded, size: 15),
                                 label: Text(
-                                  DateFormat('EEE, d MMM yyyy', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime),
+                                  safeDateFormat('EEE, d MMM yyyy', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime),
                                   style: const TextStyle(fontSize: 11.5),
                                 ),
                                 style: OutlinedButton.styleFrom(
@@ -1469,7 +1470,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                 onPressed: _pickReminderTime,
                                 icon: const Icon(Icons.access_time_filled_rounded, size: 15),
                                 label: Text(
-                                  '${DateFormat('HH:mm', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime)} WIB',
+                                  '${safeDateFormat('HH:mm', strings.isId ? 'id_ID' : 'en_US').format(_reminderDateTime)} WIB',
                                   style: const TextStyle(fontSize: 11.5),
                                 ),
                                 style: OutlinedButton.styleFrom(

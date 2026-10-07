@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../activity/data/activity_provider.dart';
@@ -33,7 +34,8 @@ class AssetDetailPage extends ConsumerWidget {
     final allLogs = ref.watch(activityLogsProvider);
     final assetLogs = allLogs.where((l) => l.assetId == currentAsset.id).toList();
 
-    final dateFormat = DateFormat('EEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
+    final dateFormat =
+        safeDateFormat('EEE, d MMM yyyy · HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     final condColor = _getConditionColor(currentAsset.condition);
     final condText = _getConditionText(currentAsset.condition, strings);

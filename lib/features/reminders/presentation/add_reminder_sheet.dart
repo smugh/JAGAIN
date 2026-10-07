@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/services/permission_service.dart';
+import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../assets/data/assets_provider.dart';
@@ -165,8 +166,10 @@ class _AddReminderSheetState extends ConsumerState<AddReminderSheet> {
     final currentAsset = assets.where((a) => a.id == _selectedAssetId).firstOrNull;
     final checklist = currentAsset?.checklist ?? [];
 
-    final dateFormat = DateFormat('EEE, d MMM yyyy', strings.isId ? 'id_ID' : 'en_US');
-    final timeFormat = DateFormat('HH:mm', strings.isId ? 'id_ID' : 'en_US');
+    final dateFormat =
+        safeDateFormat('EEE, d MMM yyyy', strings.isId ? 'id_ID' : 'en_US');
+    final timeFormat =
+        safeDateFormat('HH:mm', strings.isId ? 'id_ID' : 'en_US');
 
     final bgColor = isDark ? JagainColors.darkBackground : Colors.white;
     final surfaceColor = isDark ? JagainColors.darkSurface : const Color(0xFFF8FAFC);
