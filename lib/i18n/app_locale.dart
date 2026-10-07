@@ -115,9 +115,24 @@ class AppStrings {
 
   // Actions
   String get saveAsset => isId ? 'Simpan Aset' : 'Save Asset';
+  String get editAsset => isId ? 'Edit Aset' : 'Edit Asset';
+  String get editFormTitle => isId ? 'Edit Aset' : 'Edit Asset';
+  String get editFormSubtitle =>
+      isId
+          ? 'Perbarui informasi dan checklist perawatan asetmu.'
+          : 'Update details and care checklist for your asset.';
   String get cancel => isId ? 'Batal' : 'Cancel';
   String get assetSavedSuccess =>
       isId ? 'Aset berhasil disimpan!' : 'Asset successfully saved!';
+  String get assetUpdatedSuccess =>
+      isId ? 'Aset berhasil diperbarui!' : 'Asset successfully updated!';
+  String get takePhotoCamera => isId ? 'Ambil Foto' : 'Take Photo';
+  String get takePhotoCameraDesc => isId ? 'Kamera HP' : 'Device Camera';
+  String get pickFromGallery => isId ? 'Dari Galeri' : 'From Gallery';
+  String get pickFromGalleryDesc => isId ? 'Pilih Gambar' : 'Choose Picture';
+  String get removePhoto => isId ? 'Hapus Foto' : 'Remove Photo';
+  String get photoPresetsLabel =>
+      isId ? 'Atau gunakan pilihan ikon:' : 'Or choose preset icon:';
 
   // Settings
   String get settingsTitle => isId ? 'Pengaturan' : 'Settings';

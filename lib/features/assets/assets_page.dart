@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../i18n/app_locale.dart';
 import '../../theme/app_theme.dart';
 import '../categories/data/categories_provider.dart';
+import '../shared/widgets/asset_image_view.dart';
 import 'data/assets_provider.dart';
 import 'presentation/asset_detail_page.dart';
 
@@ -218,21 +219,15 @@ class _AssetsPageState extends ConsumerState<AssetsPage> {
                           color: isDark ? JagainColors.darkBorder : JagainColors.border,
                         ),
                       ),
-                      child: asset.imagePath != null && asset.imagePath!.isNotEmpty
-                          ? Image.asset(
-                              asset.imagePath!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Icon(
-                                getFallbackIcon(asset.categoryId),
-                                color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
-                                size: 22,
-                              ),
-                            )
-                          : Icon(
-                              getFallbackIcon(asset.categoryId),
-                              color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
-                              size: 22,
-                            ),
+                      child: AssetImageWidget(
+                        imagePath: asset.imagePath,
+                        fit: BoxFit.cover,
+                        placeholder: Icon(
+                          getFallbackIcon(asset.categoryId),
+                          color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),

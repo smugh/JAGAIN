@@ -1,21 +1,30 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
 import '../../categories/data/categories_provider.dart';
+import '../../shared/widgets/asset_image_view.dart';
 import '../data/assets_provider.dart';
 
 class AddAssetSheet extends ConsumerStatefulWidget {
-  const AddAssetSheet({super.key});
+  const AddAssetSheet({this.assetToEdit, super.key});
 
-  static Future<void> show(BuildContext context) {
+  final Asset? assetToEdit;
+
+  static Future<void> show(BuildContext context, {Asset? assetToEdit}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useRootNavigator: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const AddAssetSheet(),
+      builder: (context) => AddAssetSheet(assetToEdit: assetToEdit),
     );
   }
 
@@ -47,6 +56,77 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
     {'path': 'assets/images/house.png', 'label': 'Rumah'},
     {'path': 'assets/images/watch.png', 'label': 'Jam'},
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    final editAsset = widget.assetToEdit;
+    if (editAsset != null) {
+      _nameController.text = editAsset.name;
+      _brandController.text = editAsset.brand ?? '';
+      _modelController.text = editAsset.model ?? '';
+      _yearController.text = editAsset.year != null ? editAsset.year.toString() : '';
+      _locationController.text = editAsset.location ?? '';
+      _notesController.text = editAsset.notes ?? '';
+      _selectedCategory = editAsset.categoryId;
+      _selectedImagePath = editAsset.imagePath;
+      _selectedCondition = editAsset.condition;
+      _checklistItems.addAll(editAsset.checklist);
+      if ((editAsset.brand != null && editAsset.brand!.isNotEmpty) ||
+          (editAsset.model != null && editAsset.model!.isNotEmpty) ||
+          editAsset.year != null ||
+          (editAsset.location != null && editAsset.location!.isNotEmpty) ||
+          (editAsset.notes != null && editAsset.notes!.isNotEmpty)) {
+        _showAdvancedInfo = true;
+      }
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (pickedFile == null) return;
+
+      String finalPath = pickedFile.path;
+      if (!kIsWeb) {
+        try {
+          final appDir = await getApplicationDocumentsDirectory();
+          final photoDir = Directory(p.join(appDir.path, 'asset_photos'));
+          if (!await photoDir.exists()) {
+            await photoDir.create(recursive: true);
+          }
+          final ext = p.extension(pickedFile.path).isNotEmpty ? p.extension(pickedFile.path) : '.jpg';
+          final fileName = 'asset_${DateTime.now().millisecondsSinceEpoch}$ext';
+          final saved = await File(pickedFile.path).copy(p.join(photoDir.path, fileName));
+          finalPath = saved.path;
+        } catch (_) {
+          finalPath = pickedFile.path;
+        }
+      }
+
+      setState(() {
+        _selectedImagePath = finalPath;
+      });
+    } catch (e) {
+      if (mounted) {
+        final strings = ref.read(stringsProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              strings.isId ? 'Gagal membuka kamera/galeri: $e' : 'Failed to access camera/gallery: $e',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -170,35 +250,62 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
 
     final strings = ref.read(stringsProvider);
     final year = int.tryParse(_yearController.text.trim());
+    final isEdit = widget.assetToEdit != null;
 
-    final newAsset = Asset(
-      id: 'ast-${DateTime.now().millisecondsSinceEpoch}',
-      name: _nameController.text.trim(),
-      categoryId: _selectedCategory,
-      imagePath: _selectedImagePath,
-      condition: _selectedCondition,
-      status: AssetStatus.active,
-      brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
-      model: _modelController.text.trim().isEmpty ? null : _modelController.text.trim(),
-      year: year,
-      location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
-      notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
-      checklist: List.from(_checklistItems),
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
+    if (isEdit) {
+      final updatedAsset = widget.assetToEdit!.copyWith(
+        name: _nameController.text.trim(),
+        categoryId: _selectedCategory,
+        imagePath: _selectedImagePath,
+        condition: _selectedCondition,
+        brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
+        model: _modelController.text.trim().isEmpty ? null : _modelController.text.trim(),
+        year: year,
+        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        checklist: List.from(_checklistItems),
+        updatedAt: DateTime.now(),
+      );
 
-    ref.read(assetsProvider.notifier).addAsset(newAsset);
+      ref.read(assetsProvider.notifier).updateAsset(updatedAsset);
+      Navigator.of(context).pop();
 
-    Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(strings.assetUpdatedSuccess),
+          backgroundColor: JagainColors.primaryDark,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } else {
+      final newAsset = Asset(
+        id: 'ast-${DateTime.now().millisecondsSinceEpoch}',
+        name: _nameController.text.trim(),
+        categoryId: _selectedCategory,
+        imagePath: _selectedImagePath,
+        condition: _selectedCondition,
+        status: AssetStatus.active,
+        brand: _brandController.text.trim().isEmpty ? null : _brandController.text.trim(),
+        model: _modelController.text.trim().isEmpty ? null : _modelController.text.trim(),
+        year: year,
+        location: _locationController.text.trim().isEmpty ? null : _locationController.text.trim(),
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+        checklist: List.from(_checklistItems),
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(strings.assetSavedSuccess),
-        backgroundColor: JagainColors.primaryDark,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      ref.read(assetsProvider.notifier).addAsset(newAsset);
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(strings.assetSavedSuccess),
+          backgroundColor: JagainColors.primaryDark,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   @override
@@ -206,6 +313,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
     final strings = ref.watch(stringsProvider);
     final categories = ref.watch(categoriesProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isEdit = widget.assetToEdit != null;
 
     final bgColor = isDark ? JagainColors.darkBackground : Colors.white;
     final surfaceColor = isDark ? JagainColors.darkSurface : const Color(0xFFF1F5F9);
@@ -255,7 +363,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        Icons.add_task_rounded,
+                        isEdit ? Icons.edit_note_rounded : Icons.add_task_rounded,
                         color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
                         size: 22,
                       ),
@@ -266,13 +374,13 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            strings.formTitle,
+                            isEdit ? strings.editFormTitle : strings.formTitle,
                             style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                   fontWeight: FontWeight.w700,
                                 ),
                           ),
                           Text(
-                            strings.formSubtitle,
+                            isEdit ? strings.editFormSubtitle : strings.formSubtitle,
                             style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                   color: isDark ? JagainColors.darkMuted : JagainColors.muted,
                                 ),
@@ -355,7 +463,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
-                  autofocus: true,
+                  autofocus: false,
                   textCapitalization: TextCapitalization.words,
                   decoration: InputDecoration(
                     hintText: strings.assetNameHint,
@@ -370,7 +478,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                 ),
                 const SizedBox(height: 20),
 
-                // 3. Opsi Foto Aset (Requested: "tambahkan opsi foto aset")
+                // 3. Opsi Foto Aset (Camera, Gallery, and Preset Icons)
                 Text(
                   strings.photoOptionLabel,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -385,65 +493,170 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                     color: isDark ? JagainColors.darkMuted : JagainColors.muted,
                   ),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
 
-                // Photo Presets & Preview
-                Row(
-                  children: [
-                    // Preview Box
-                    Container(
-                      width: 64,
-                      height: 64,
-                      decoration: BoxDecoration(
-                        color: surfaceColor,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(
-                          color: JagainColors.primary.withValues(alpha: 0.6),
-                          width: 1.5,
+                // Preview Box & Camera/Gallery Action Buttons
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: surfaceColor,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: borderColor),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          // Live Image Preview
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: isDark ? JagainColors.darkBackground : Colors.white,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: JagainColors.primary.withValues(alpha: 0.5),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: _selectedImagePath != null && _selectedImagePath!.isNotEmpty
+                                  ? AssetImageWidget(
+                                      imagePath: _selectedImagePath,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Center(
+                                      child: Icon(
+                                        Icons.add_a_photo_outlined,
+                                        color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                                        size: 26,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+
+                          // Camera & Gallery Buttons
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: ElevatedButton.icon(
+                                        onPressed: () => _pickImage(ImageSource.camera),
+                                        icon: const Icon(Icons.camera_alt_rounded, size: 16),
+                                        label: Text(
+                                          strings.takePhotoCamera,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: JagainColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: OutlinedButton.icon(
+                                        onPressed: () => _pickImage(ImageSource.gallery),
+                                        icon: const Icon(Icons.photo_library_rounded, size: 16),
+                                        label: Text(
+                                          strings.pickFromGallery,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
+                                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                                          side: BorderSide(
+                                            color: isDark ? JagainColors.primaryLight : JagainColors.primary,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_selectedImagePath != null && _selectedImagePath!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: InkWell(
+                                      onTap: () => setState(() => _selectedImagePath = null),
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.delete_outline_rounded,
+                                              size: 15,
+                                              color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFEF4444),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              strings.removePhoto,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFEF4444),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Presets Divider / Header
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          strings.photoPresetsLabel,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+                          ),
                         ),
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(13),
-                        child: _selectedImagePath != null && _selectedImagePath!.isNotEmpty
-                            ? Image.asset(
-                                _selectedImagePath!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => Center(
-                                  child: Icon(
-                                    Icons.photo_outlined,
-                                    color: isDark ? JagainColors.darkMuted : JagainColors.muted,
-                                  ),
-                                ),
-                              )
-                            : Center(
-                                child: Icon(
-                                  Icons.hide_image_outlined,
-                                  color: isDark ? JagainColors.darkMuted : JagainColors.muted,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
+                      const SizedBox(height: 8),
 
-                    // Preset Scroll
-                    Expanded(
-                      child: SizedBox(
-                        height: 64,
+                      // Presets Horizontal list
+                      SizedBox(
+                        height: 58,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
                           children: [
-                            // "Tanpa Foto" option
+                            // "Polos / Tanpa Foto" option
                             InkWell(
                               onTap: () => setState(() => _selectedImagePath = null),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(10),
                               child: Container(
-                                width: 56,
+                                width: 50,
                                 margin: const EdgeInsets.only(right: 8),
                                 decoration: BoxDecoration(
                                   color: _selectedImagePath == null
                                       ? JagainColors.primary.withValues(alpha: 0.25)
-                                      : surfaceColor,
-                                  borderRadius: BorderRadius.circular(12),
+                                      : (isDark ? JagainColors.darkBackground : Colors.white),
+                                  borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
                                     color: _selectedImagePath == null ? JagainColors.primary : borderColor,
                                     width: _selectedImagePath == null ? 2 : 1,
@@ -454,7 +667,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                   children: [
                                     Icon(
                                       Icons.block_rounded,
-                                      size: 20,
+                                      size: 18,
                                       color: _selectedImagePath == null
                                           ? JagainColors.primaryLight
                                           : (isDark ? JagainColors.darkMuted : JagainColors.muted),
@@ -463,7 +676,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                     Text(
                                       strings.isId ? 'Polos' : 'None',
                                       style: TextStyle(
-                                        fontSize: 10,
+                                        fontSize: 9,
                                         fontWeight: FontWeight.w600,
                                         color: _selectedImagePath == null
                                             ? JagainColors.primaryLight
@@ -475,7 +688,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                               ),
                             ),
 
-                            // Presets
+                            // Image presets
                             ..._photoPresets.map((preset) {
                               final path = preset['path']!;
                               final label = preset['label']!;
@@ -483,15 +696,15 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
 
                               return InkWell(
                                 onTap: () => setState(() => _selectedImagePath = path),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 child: Container(
-                                  width: 56,
+                                  width: 50,
                                   margin: const EdgeInsets.only(right: 8),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? JagainColors.primary.withValues(alpha: 0.2)
-                                        : surfaceColor,
-                                    borderRadius: BorderRadius.circular(12),
+                                        : (isDark ? JagainColors.darkBackground : Colors.white),
+                                    borderRadius: BorderRadius.circular(10),
                                     border: Border.all(
                                       color: isSelected ? JagainColors.primary : borderColor,
                                       width: isSelected ? 2 : 1,
@@ -500,12 +713,12 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                   child: Stack(
                                     children: [
                                       Padding(
-                                        padding: const EdgeInsets.all(4),
+                                        padding: const EdgeInsets.all(3),
                                         child: Column(
                                           children: [
                                             Expanded(
                                               child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius: BorderRadius.circular(7),
                                                 child: Image.asset(
                                                   path,
                                                   fit: BoxFit.cover,
@@ -517,7 +730,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                             Text(
                                               label,
                                               style: TextStyle(
-                                                fontSize: 9,
+                                                fontSize: 8.5,
                                                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                                 color: isSelected
                                                     ? JagainColors.primaryLight
@@ -537,7 +750,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                                               color: JagainColors.primary,
                                               shape: BoxShape.circle,
                                             ),
-                                            child: const Icon(Icons.check, size: 10, color: Colors.white),
+                                            child: const Icon(Icons.check, size: 8, color: Colors.white),
                                           ),
                                         ),
                                     ],
@@ -548,8 +761,8 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                           ],
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 20),
 
@@ -915,7 +1128,11 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                       child: FilledButton.icon(
                         onPressed: _save,
                         icon: const Icon(Icons.check_rounded),
-                        label: Text(strings.saveAsset),
+                        label: Text(
+                          isEdit
+                              ? (strings.isId ? 'Simpan Perubahan' : 'Save Changes')
+                              : strings.saveAsset,
+                        ),
                         style: FilledButton.styleFrom(
                           backgroundColor: JagainColors.primary,
                           foregroundColor: Colors.white,

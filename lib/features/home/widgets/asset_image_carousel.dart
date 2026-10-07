@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../theme/app_theme.dart';
 import '../../assets/domain/asset.dart';
 import '../../assets/presentation/asset_detail_page.dart';
+import '../../shared/widgets/asset_image_view.dart';
 
 class AssetImageCarousel extends StatefulWidget {
   const AssetImageCarousel({
@@ -203,14 +204,11 @@ class _CarouselSlide extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               // 1. Background Image
-              if (asset.imagePath != null && asset.imagePath!.isNotEmpty)
-                Image.asset(
-                  asset.imagePath!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => _buildFallbackBackground(),
-                )
-              else
-                _buildFallbackBackground(),
+              AssetImageWidget(
+                imagePath: asset.imagePath,
+                fit: BoxFit.cover,
+                placeholder: _buildFallbackBackground(),
+              ),
 
               // 2. Multi-stop Gradient Vignette for perfect text readability
               Container(

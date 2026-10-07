@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../i18n/app_locale.dart';
 import '../../../theme/app_theme.dart';
+import '../../shared/widgets/asset_image_view.dart';
 import '../data/assets_provider.dart';
+import 'add_asset_sheet.dart';
 
 class AssetDetailPage extends ConsumerWidget {
   const AssetDetailPage({required this.asset, super.key});
@@ -32,6 +34,11 @@ class AssetDetailPage extends ConsumerWidget {
         ),
         actions: [
           IconButton(
+            tooltip: strings.editAsset,
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: () => AddAssetSheet.show(context, assetToEdit: currentAsset),
+          ),
+          IconButton(
             tooltip: strings.isId ? 'Hapus Aset' : 'Delete Asset',
             icon: const Icon(Icons.delete_outline_rounded),
             onPressed: () => _confirmDelete(context, ref, strings, currentAsset),
@@ -51,14 +58,11 @@ class AssetDetailPage extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (currentAsset.imagePath != null && currentAsset.imagePath!.isNotEmpty)
-                    Image.asset(
-                      currentAsset.imagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => _buildFallbackImage(isDark),
-                    )
-                  else
-                    _buildFallbackImage(isDark),
+                  AssetImageWidget(
+                    imagePath: currentAsset.imagePath,
+                    fit: BoxFit.cover,
+                    placeholder: _buildFallbackImage(isDark),
+                  ),
                   // Gradient Overlay
                   Positioned(
                     bottom: 0,
@@ -109,6 +113,37 @@ class AssetDetailPage extends ConsumerWidget {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+                  // Quick Edit Photo Button
+                  Positioned(
+                    bottom: 14,
+                    right: 14,
+                    child: Material(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        onTap: () => AddAssetSheet.show(context, assetToEdit: currentAsset),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 14),
+                              const SizedBox(width: 4),
+                              Text(
+                                strings.isId ? 'Ubah Foto' : 'Change Photo',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),

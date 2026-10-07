@@ -6,6 +6,7 @@ import '../../theme/app_theme.dart';
 import '../assets/data/assets_provider.dart';
 import '../assets/presentation/add_asset_sheet.dart';
 import '../assets/presentation/asset_detail_page.dart';
+import '../shared/widgets/asset_image_view.dart';
 import 'widgets/asset_dashboard_card.dart';
 import 'widgets/asset_image_carousel.dart';
 
@@ -330,21 +331,15 @@ class HomePage extends ConsumerWidget {
                           color: isDark ? JagainColors.darkBorder : JagainColors.border,
                         ),
                       ),
-                      child: asset.imagePath != null && asset.imagePath!.isNotEmpty
-                          ? Image.asset(
-                              asset.imagePath!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Icon(
-                                getCategoryIcon(asset.categoryId),
-                                color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
-                                size: 22,
-                              ),
-                            )
-                          : Icon(
-                              getCategoryIcon(asset.categoryId),
-                              color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
-                              size: 22,
-                            ),
+                      child: AssetImageWidget(
+                        imagePath: asset.imagePath,
+                        fit: BoxFit.cover,
+                        placeholder: Icon(
+                          getCategoryIcon(asset.categoryId),
+                          color: isDark ? JagainColors.primaryLight : JagainColors.primaryDark,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
