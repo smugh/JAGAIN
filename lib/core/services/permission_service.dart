@@ -2,64 +2,29 @@ import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionService {
+  static bool _isRequesting = false;
+
   /// Request all essential app permissions on first app launch / installation:
   /// - Local Storage & Media (penyimpanan database aset lokal & lampiran foto)
   /// - Notifications (pengingat & alarm perawatan)
   /// - Camera (foto aset & bukti perawatan)
   /// - Exact Alarms / Reminders (jadwal akurat waktu & tanggal di Android 12+)
   static Future<void> requestInitialPermissions() async {
+    if (_isRequesting) return;
+    _isRequesting = true;
     try {
-      // 1. Request Local Storage permission (Android 12 and below)
-      try {
-        final storageStatus = await Permission.storage.status;
-        if (!storageStatus.isGranted) {
-          await Permission.storage.request();
-        }
-      } catch (e) {
-        debugPrint('Storage permission error: $e');
-      }
-
-      // 2. Request Media / Photos permission (Android 13+ READ_MEDIA_IMAGES)
-      try {
-        final photosStatus = await Permission.photos.status;
-        if (!photosStatus.isGranted) {
-          await Permission.photos.request();
-        }
-      } catch (e) {
-        debugPrint('Photos permission error: $e');
-      }
-
-      // 3. Request Notification permission
-      try {
-        final notifStatus = await Permission.notification.status;
-        if (!notifStatus.isGranted) {
-          await Permission.notification.request();
-        }
-      } catch (e) {
-        debugPrint('Notification permission error: $e');
-      }
-
-      // 4. Request Camera permission
-      try {
-        final cameraStatus = await Permission.camera.status;
-        if (!cameraStatus.isGranted) {
-          await Permission.camera.request();
-        }
-      } catch (e) {
-        debugPrint('Camera permission error: $e');
-      }
-
-      // 5. Request Exact Alarm permission (Android 12+ for exact time & date reminders)
-      try {
-        final alarmStatus = await Permission.scheduleExactAlarm.status;
-        if (!alarmStatus.isGranted) {
-          await Permission.scheduleExactAlarm.request();
-        }
-      } catch (e) {
-        debugPrint('Schedule exact alarm not applicable on this platform: $e');
-      }
+      final permissions = <Permission>[
+        Permission.storage,
+        Permission.photos,
+        Permission.notification,
+        Permission.camera,
+        Permission.scheduleExactAlarm,
+      ];
+      await permissions.request();
     } catch (e) {
       debugPrint('Error requesting initial permissions: $e');
+    } finally {
+      _isRequesting = false;
     }
   }
 
