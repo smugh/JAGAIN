@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
@@ -57,10 +56,6 @@ class _ExecuteReminderDialogState extends ConsumerState<ExecuteReminderDialog> {
 
     // 3. If user opted to save to history / action log
     if (_saveToHistory) {
-      final assets = ref.read(assetsProvider);
-      final parentAsset = assets.where((a) => a.id == reminder.assetId).firstOrNull;
-      final assetName = parentAsset?.name ?? 'Aset';
-
       String targetLabel = reminder.isChecklistItem
           ? (strings.isId ? 'Sub-Item Checklist' : 'Checklist Sub-Item')
           : (strings.isId ? 'Aset Utama' : 'Main Asset');
@@ -223,7 +218,7 @@ class _ExecuteReminderDialogState extends ConsumerState<ExecuteReminderDialog> {
               child: SwitchListTile(
                 value: _saveToHistory,
                 onChanged: (val) => setState(() => _saveToHistory = val),
-                activeColor: JagainColors.primary,
+                activeThumbColor: JagainColors.primary,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                 dense: true,
                 title: Text(

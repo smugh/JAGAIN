@@ -74,4 +74,49 @@ class AssetReminder {
       notes: notes ?? this.notes,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'assetId': assetId,
+      'checklistItemId': checklistItemId,
+      'targetType': targetType.name,
+      'title': title,
+      'dueDate': dueDate.toIso8601String(),
+      'recurrence': recurrence.name,
+      'status': status.name,
+      'notificationEnabled': notificationEnabled,
+      'completedAt': completedAt?.toIso8601String(),
+      'createdAt': createdAt.toIso8601String(),
+      'notes': notes,
+    };
+  }
+
+  factory AssetReminder.fromJson(Map<String, dynamic> json) {
+    return AssetReminder(
+      id: json['id'] as String? ?? '',
+      assetId: json['assetId'] as String? ?? '',
+      checklistItemId: json['checklistItemId'] as String?,
+      targetType: ReminderTargetType.values.firstWhere(
+        (e) => e.name == json['targetType'],
+        orElse: () => ReminderTargetType.asset,
+      ),
+      title: json['title'] as String? ?? '',
+      dueDate: DateTime.tryParse(json['dueDate'] as String? ?? '') ?? DateTime.now(),
+      recurrence: ReminderRecurrence.values.firstWhere(
+        (e) => e.name == json['recurrence'],
+        orElse: () => ReminderRecurrence.once,
+      ),
+      status: ReminderStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => ReminderStatus.upcoming,
+      ),
+      notificationEnabled: json['notificationEnabled'] as bool? ?? true,
+      completedAt: json['completedAt'] != null
+          ? DateTime.tryParse(json['completedAt'] as String)
+          : null,
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      notes: json['notes'] as String?,
+    );
+  }
 }

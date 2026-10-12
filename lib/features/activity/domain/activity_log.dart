@@ -52,4 +52,35 @@ class AssetActivityLog {
       targetName: targetName ?? this.targetName,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'assetId': assetId,
+      'reminderId': reminderId,
+      'checklistItemId': checklistItemId,
+      'title': title,
+      'timestamp': timestamp.toIso8601String(),
+      'notes': notes,
+      'type': type.name,
+      'targetName': targetName,
+    };
+  }
+
+  factory AssetActivityLog.fromJson(Map<String, dynamic> json) {
+    return AssetActivityLog(
+      id: json['id'] as String? ?? '',
+      assetId: json['assetId'] as String? ?? '',
+      reminderId: json['reminderId'] as String?,
+      checklistItemId: json['checklistItemId'] as String?,
+      title: json['title'] as String? ?? '',
+      timestamp: DateTime.tryParse(json['timestamp'] as String? ?? '') ?? DateTime.now(),
+      notes: json['notes'] as String?,
+      type: ActivityType.values.firstWhere(
+        (e) => e.name == json['type'],
+        orElse: () => ActivityType.manualLog,
+      ),
+      targetName: json['targetName'] as String?,
+    );
+  }
 }

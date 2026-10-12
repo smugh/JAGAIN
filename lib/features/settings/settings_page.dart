@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/database/local_database_service.dart';
 import '../../core/services/permission_service.dart';
 import '../../i18n/app_locale.dart';
 import '../../theme/app_theme.dart';
@@ -136,6 +137,7 @@ class SettingsPage extends ConsumerWidget {
                 icon: Icons.backup_outlined,
                 title: strings.backupTitle,
                 subtitle: strings.backupSubtitle,
+                onTap: () => _showBackupSheet(context, isDark, strings),
               ),
               const Divider(height: 1, indent: 56),
               _SettingRow(
@@ -269,6 +271,17 @@ class SettingsPage extends ConsumerWidget {
       builder: (ctx) => _PermissionSheetContent(isDark: isDark, isId: strings.isId),
     );
   }
+
+  void _showBackupSheet(BuildContext context, bool isDark, AppStrings strings) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: isDark ? JagainColors.darkSurface : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _BackupSheetContent(isDark: isDark, isId: strings.isId),
+    );
+  }
 }
 
 class _SettingRow extends StatelessWidget {
@@ -313,6 +326,7 @@ class _PermissionSheetContent extends StatefulWidget {
 
 class _PermissionSheetContentState extends State<_PermissionSheetContent> {
   Map<String, bool> _statuses = {
+    'storage': false,
     'camera': false,
     'notification': false,
     'exactAlarm': false,
@@ -389,14 +403,25 @@ class _PermissionSheetContentState extends State<_PermissionSheetContent> {
           const SizedBox(height: 4),
           Text(
             isId
-                ? 'JAGAIN memerlukan izin berikut agar kamera, pengingat, dan notifikasi berjalan maksimal.'
-                : 'JAGAIN requires these permissions so camera, reminders, and alerts work optimally.',
+                ? 'JAGAIN memerlukan izin berikut agar database lokal, kamera, pengingat, dan notifikasi berjalan maksimal.'
+                : 'JAGAIN requires these permissions so local database, camera, reminders, and alerts work optimally.',
             style: TextStyle(fontSize: 12.5, color: mutedColor),
           ),
           const SizedBox(height: 16),
           if (_isLoading)
             const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
           else ...[
+            _buildPermissionItem(
+              icon: Icons.sd_storage_outlined,
+              title: isId ? 'Penyimpanan Lokal (Storage)' : 'Local Storage',
+              desc: isId
+                  ? 'Menyimpan database aset, riwayat catatan, dan foto langsung di memori perangkat'
+                  : 'Saves asset database, activity records, and photos directly on device',
+              isGranted: _statuses['storage'] ?? false,
+              isDark: isDark,
+              isId: isId,
+            ),
+            const SizedBox(height: 10),
             _buildPermissionItem(
               icon: Icons.camera_alt_outlined,
               title: isId ? 'Kamera & Foto' : 'Camera & Photos',
@@ -516,3 +541,215 @@ class _PermissionSheetContentState extends State<_PermissionSheetContent> {
     );
   }
 }
+
+class _BackupSheetContent extends StatefulWidget {
+  const _BackupSheetContent({required this.isDark, required this.isId});
+
+  final bool isDark;
+  final bool isId;
+
+  @override
+  State<_BackupSheetContent> createState() => _BackupSheetContentState();
+}
+
+class _BackupSheetContentState extends State<_BackupSheetContent> {
+  Map<String, dynamic>? _info;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInfo();
+  }
+
+  Future<void> _loadInfo() async {
+    final res = await LocalDatabaseService.instance.getDatabaseInfo();
+    if (mounted) {
+      setState(() {
+        _info = res;
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = widget.isDark;
+    final isId = widget.isId;
+    final mutedColor = isDark ? JagainColors.darkMuted : JagainColors.muted;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Container(
+              width: 44,
+              height: 4,
+              decoration: BoxDecoration(
+                color: isDark ? JagainColors.darkMuted.withValues(alpha: 0.4) : const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: JagainColors.primary.withValues(alpha: isDark ? 0.2 : 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.backup_outlined, color: JagainColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  isId ? 'Database & Cadangan Lokal' : 'Local Database & Backup',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            isId
+                ? 'Semua data aset, pengingat, dan riwayat tersimpan permanen di penyimpanan lokal perangkat.'
+                : 'All asset data, reminders, and activities are permanently stored in device local storage.',
+            style: TextStyle(fontSize: 12.5, color: mutedColor),
+          ),
+          const SizedBox(height: 16),
+          if (_loading)
+            const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+          else ...[
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: isDark ? JagainColors.darkBackground : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: isDark ? JagainColors.darkBorder : const Color(0xFFE2E8F0),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF10B981), size: 18),
+                      const SizedBox(width: 8),
+                      Text(
+                        isId ? 'Penyimpanan Lokal Aktif & Aman' : 'Local Storage Active & Safe',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _buildStatRow(
+                    isDark: isDark,
+                    label: isId ? 'Total Aset Terdaftar' : 'Total Assets',
+                    value: '${_info?['assetsCount'] ?? 0}',
+                  ),
+                  _buildStatRow(
+                    isDark: isDark,
+                    label: isId ? 'Total Jadwal Pengingat' : 'Total Reminders',
+                    value: '${_info?['remindersCount'] ?? 0}',
+                  ),
+                  _buildStatRow(
+                    isDark: isDark,
+                    label: isId ? 'Total Catatan Riwayat' : 'Total Activity Logs',
+                    value: '${_info?['activityLogsCount'] ?? 0}',
+                  ),
+                  _buildStatRow(
+                    isDark: isDark,
+                    label: isId ? 'Ukuran Database' : 'Database Size',
+                    value: '${_info?['totalSizeFormatted'] ?? '0 KB'}',
+                  ),
+                  _buildStatRow(
+                    isDark: isDark,
+                    label: isId ? 'Folder Data' : 'Data Folder',
+                    value: '${_info?['path'] ?? '-'}',
+                    isSmall: true,
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      isId
+                          ? 'Database lokal tersimpan otomatis pada setiap perubahan data.'
+                          : 'Local database saves automatically on every change.',
+                    ),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              icon: const Icon(Icons.check_rounded, size: 18),
+              label: Text(isId ? 'Selesai' : 'Done'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: JagainColors.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatRow({
+    required bool isDark,
+    required String label,
+    required String value,
+    bool isSmall = false,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark ? JagainColors.darkMuted : JagainColors.muted,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                fontSize: isSmall ? 10.5 : 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? JagainColors.darkText : JagainColors.ink,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

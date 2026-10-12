@@ -24,6 +24,22 @@ class ChecklistItem {
       isCompleted: isCompleted ?? this.isCompleted,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'isCompleted': isCompleted,
+    };
+  }
+
+  factory ChecklistItem.fromJson(Map<String, dynamic> json) {
+    return ChecklistItem(
+      id: json['id'] as String? ?? '',
+      title: json['title'] as String? ?? '',
+      isCompleted: json['isCompleted'] as bool? ?? false,
+    );
+  }
 }
 
 class Asset {
@@ -106,6 +122,60 @@ class Asset {
       checklist: checklist ?? this.checklist,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'categoryId': categoryId,
+      'brand': brand,
+      'model': model,
+      'year': year,
+      'purchaseDate': purchaseDate?.toIso8601String(),
+      'identifier': identifier,
+      'ownerId': ownerId,
+      'location': location,
+      'condition': condition.name,
+      'status': status.name,
+      'notes': notes,
+      'imagePath': imagePath,
+      'checklist': checklist.map((c) => c.toJson()).toList(),
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+    };
+  }
+
+  factory Asset.fromJson(Map<String, dynamic> json) {
+    return Asset(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      categoryId: json['categoryId'] as String? ?? 'other',
+      brand: json['brand'] as String?,
+      model: json['model'] as String?,
+      year: json['year'] as int?,
+      purchaseDate: json['purchaseDate'] != null
+          ? DateTime.tryParse(json['purchaseDate'] as String)
+          : null,
+      identifier: json['identifier'] as String?,
+      ownerId: json['ownerId'] as String?,
+      location: json['location'] as String?,
+      condition: AssetCondition.values.firstWhere(
+        (e) => e.name == json['condition'],
+        orElse: () => AssetCondition.good,
+      ),
+      status: AssetStatus.values.firstWhere(
+        (e) => e.name == json['status'],
+        orElse: () => AssetStatus.active,
+      ),
+      notes: json['notes'] as String?,
+      imagePath: json['imagePath'] as String?,
+      checklist: (json['checklist'] as List<dynamic>? ?? [])
+          .map((c) => ChecklistItem.fromJson(c as Map<String, dynamic>))
+          .toList(),
+      createdAt: DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updatedAt'] as String? ?? '') ?? DateTime.now(),
     );
   }
 }

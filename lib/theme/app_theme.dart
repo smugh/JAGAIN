@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/database/local_database_service.dart';
+
 abstract final class JagainColors {
   // Brand accents
   static const primary = Color(0xFF14B8A6);
@@ -195,14 +197,17 @@ abstract final class AppTheme {
 
 class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
-  ThemeMode build() => ThemeMode.dark;
+  ThemeMode build() => LocalDatabaseService.instance.getThemeMode();
 
   void toggle() {
-    state = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    final next = state == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
+    state = next;
+    LocalDatabaseService.instance.saveSettings(themeMode: next);
   }
 
   void setThemeMode(ThemeMode mode) {
     state = mode;
+    LocalDatabaseService.instance.saveSettings(themeMode: mode);
   }
 }
 

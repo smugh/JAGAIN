@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:intl/intl.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -1270,7 +1269,7 @@ class _AddAssetSheetState extends ConsumerState<AddAssetSheet> {
                           ),
                           Switch(
                             value: _enableReminder,
-                            activeColor: JagainColors.primary,
+                            activeThumbColor: JagainColors.primary,
                             onChanged: (val) async {
                               setState(() => _enableReminder = val);
                               if (val) {

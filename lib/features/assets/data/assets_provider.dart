@@ -1,47 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/database/local_database_service.dart';
 import '../domain/asset.dart';
 
 export '../domain/asset.dart';
 
 class AssetsNotifier extends Notifier<List<Asset>> {
   @override
-  List<Asset> build() => _initialAssets;
-
-  static final List<Asset> _initialAssets = [
-    Asset(
-      id: 'ast-1',
-      name: 'Toyota Avanza',
-      categoryId: 'vehicle',
-      condition: AssetCondition.needsAttention,
-      status: AssetStatus.active,
-      brand: 'Toyota',
-      model: 'Avanza G 1.5',
-      year: 2021,
-      location: 'Garasi Depan',
-      imagePath: 'assets/images/car.png',
-      notes: 'Pajak tahunan dan servis oli bulan ini.',
-      checklist: const [
-        ChecklistItem(id: 'c1', title: 'Jadwal servis berkala & ganti oli', isCompleted: false),
-        ChecklistItem(id: 'c2', title: 'Bayar pajak tahunan (PKB)', isCompleted: false),
-        ChecklistItem(id: 'c3', title: 'Ganti kampas rem depan', isCompleted: true),
-        ChecklistItem(id: 'c4', title: 'Cek tekanan angin ban & aki', isCompleted: true),
-      ],
-      createdAt: DateTime.now().subtract(const Duration(days: 60)),
-      updatedAt: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-  ];
+  List<Asset> build() => LocalDatabaseService.instance.getAssets();
 
   void addAsset(Asset asset) {
     state = [asset, ...state];
+    LocalDatabaseService.instance.saveAssets(state);
   }
 
   void updateAsset(Asset updated) {
     state = state.map((item) => item.id == updated.id ? updated : item).toList();
+    LocalDatabaseService.instance.saveAssets(state);
   }
 
   void removeAsset(String id) {
     state = state.where((item) => item.id != id).toList();
+    LocalDatabaseService.instance.saveAssets(state);
   }
 
   void toggleChecklistItem(String assetId, String itemId) {
@@ -53,6 +33,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       }).toList();
       return asset.copyWith(checklist: updatedChecklist, updatedAt: DateTime.now());
     }).toList();
+    LocalDatabaseService.instance.saveAssets(state);
   }
 
   void addChecklistItem(String assetId, String title) {
@@ -69,6 +50,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
         updatedAt: DateTime.now(),
       );
     }).toList();
+    LocalDatabaseService.instance.saveAssets(state);
   }
 
   void removeChecklistItem(String assetId, String itemId) {
@@ -77,6 +59,7 @@ class AssetsNotifier extends Notifier<List<Asset>> {
       final updatedChecklist = asset.checklist.where((c) => c.id != itemId).toList();
       return asset.copyWith(checklist: updatedChecklist, updatedAt: DateTime.now());
     }).toList();
+    LocalDatabaseService.instance.saveAssets(state);
   }
 }
 

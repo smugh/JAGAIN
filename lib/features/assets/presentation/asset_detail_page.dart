@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/utils/date_format_helper.dart';
 import '../../../i18n/app_locale.dart';
@@ -914,6 +913,8 @@ class AssetDetailPage extends ConsumerWidget {
             style: FilledButton.styleFrom(backgroundColor: const Color(0xFFEF4444)),
             onPressed: () {
               ref.read(assetsProvider.notifier).removeAsset(asset.id);
+              ref.read(remindersProvider.notifier).removeRemindersForAsset(asset.id);
+              ref.read(activityLogsProvider.notifier).removeLogsForAsset(asset.id);
               Navigator.of(ctx).pop();
               Navigator.of(context).pop();
               ScaffoldMessenger.of(context).showSnackBar(

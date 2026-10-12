@@ -1,15 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../core/database/local_database_service.dart';
+
 enum AppLanguage { id, en }
 
 class AppLanguageNotifier extends Notifier<AppLanguage> {
   @override
-  AppLanguage build() => AppLanguage.id;
+  AppLanguage build() => LocalDatabaseService.instance.getLanguage();
 
-  void setLanguage(AppLanguage language) => state = language;
+  void setLanguage(AppLanguage language) {
+    state = language;
+    LocalDatabaseService.instance.saveSettings(language: language);
+  }
 
   void toggleLanguage() {
-    state = state == AppLanguage.id ? AppLanguage.en : AppLanguage.id;
+    final next = state == AppLanguage.id ? AppLanguage.en : AppLanguage.id;
+    state = next;
+    LocalDatabaseService.instance.saveSettings(language: next);
   }
 }
 

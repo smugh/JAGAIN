@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import '../../../core/services/permission_service.dart';
 import '../../../core/utils/date_format_helper.dart';
@@ -126,6 +125,7 @@ class _AddReminderSheetState extends ConsumerState<AddReminderSheet> {
 
     // Request permissions
     await PermissionService.requestInitialPermissions();
+    if (!mounted) return;
 
     final reminder = AssetReminder(
       id: 'rem_${DateTime.now().millisecondsSinceEpoch}',
